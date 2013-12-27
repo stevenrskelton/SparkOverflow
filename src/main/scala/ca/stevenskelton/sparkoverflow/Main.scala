@@ -14,26 +14,42 @@ object Main extends App {
   val minSplits = 4
 
   //System.getenv("SPARK_HOME"),Seq(System.getenv("SPARK_EXAMPLES_JAR")))
-  LogManager.getRootLogger().setLevel(Level.WARN)
+  //LogManager.getRootLogger().setLevel(Level.WARN)
   //System.setProperty("spark.worker.memory", "3g")
   System.setProperty("spark.executor.memory", "5g")
   //System.setProperty("spark.rdd.compress", "true")
-  if (true) {
+  if (!true) {
     System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     System.setProperty("spark.kryo.registrator", "ca.stevenskelton.sparkoverflow.KyroRegistrator")
   }
 
+  println("Start spark.")
   val sc = new SparkContext("local", "Main",
     sparkHome, List("target/scala-2.10/sparkoverflow_2.10-0.1-SNAPSHOT.jar"))
 
+  println("Load data")
   //LOAD DATA USING SPARK
   val jsonData = sc.textFile(Post.file.getAbsolutePath, minSplits)
   val objData = jsonData.flatMap(Post.parse)
   objData.cache
 
-  //val jsonVoteData = sc.textFile(Vote.file.getAbsolutePath, minSplits)
-  //val voteData = jsonVoteData.flatMap(Vote.parse)
-  //voteData.cache
+  //val posts = objData.keyBy(_.id)
+
+  //  val jsonVoteData = sc.textFile(Vote.file.getAbsolutePath, minSplits)
+  //  val voteData = jsonVoteData.flatMap(Vote.parse)
+  //  voteData.cache
+
+  val jsonUserData = sc.textFile(User.file.getAbsolutePath, minSplits)
+  val userData = jsonUserData.flatMap(User.parse)
+  userData.cache
+
+  //val votes = voteData.groupBy(_.postId)
+
+  //cogroup === outer join
+  //join === inner join
+  //left outer join
+
+  //val joinedData = posts.leftOuterJoin(votes)
 
   var query: RDD[Post] = objData
 
@@ -66,6 +82,14 @@ object Main extends App {
         case "!t" => {
           val tags = query.flatMap(_.tags).countByValue
           println("Tags: " + tags.toSeq.sortBy(_._2 * -1).take(10).mkString(","))
+        }
+        case c if c.startsWith("!a:") => {
+          val age = c.drop(3).toInt
+          val userAges = userData.filter(_.age >= age).keyBy(_.id)
+          val ages = query.keyBy(_.ownerUserId).join(userAges).map(_._2._2.age)
+          println("Ages: ")
+
+          ages.countByValue.toSeq.sortBy(_._1 * -1).foreach(println)
         }
         case "!" => {
           //get count, print top 10 comment oids

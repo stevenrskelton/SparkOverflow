@@ -23,7 +23,7 @@ class VotesSpec extends org.specs2.mutable.SpecificationWithJUnit {
 
     skipped
 
-    val linesSource = Source.fromFile(Vote.file)
+    val linesSource = Source.fromFile(Vote.file, "UTF-8")
     val votes = try {
       val lines = linesSource.getLines
       lines.flatMap(Vote.parse).size

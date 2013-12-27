@@ -23,7 +23,7 @@ class ParserPostsSpec extends org.specs2.mutable.SpecificationWithJUnit {
     
     skipped
     
-    val linesSource = Source.fromFile(Post.file)
+    val linesSource = Source.fromFile(Post.file, "UTF-8")
     val posts = try {
       val lines = linesSource.getLines
       lines.flatMap(Post.parse).size
